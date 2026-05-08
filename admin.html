@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1.0">
+  <meta name="theme-color" content="#0f0f1a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>管理后台 - 模组站</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎲</text></svg>">
+</head>
+<body>
+
+  <!-- 登录界面 -->
+  <div class="login-screen" id="login-screen">
+    <div class="login-box">
+      <h2>🔒 管理登录</h2>
+      <p class="login-sub">跑团店模组管理系统</p>
+      <div class="login-error" id="login-error">用户名或密码错误</div>
+      <div class="form-group">
+        <input type="text" id="login-user" class="form-input" placeholder="用户名" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <input type="password" id="login-pass" class="form-input" placeholder="密码" autocomplete="current-password">
+      </div>
+      <button class="btn btn-primary" onclick="doLogin()" style="margin-top:4px;">登　录</button>
+      <div style="text-align:center; margin-top:14px;">
+        <a href="index.html" style="color:var(--text2); font-size:13px; text-decoration:none;">← 返回玩家端</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 主界面（登录后显示） -->
+  <div id="admin-main" style="display:none;">
+    <!-- 顶部栏 -->
+    <header class="top-bar">
+      <h1>⚙️ 管理后台</h1>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <span id="current-admin-name" style="font-size:12px; color:var(--text2);"></span>
+        <button class="badge-admin secondary" onclick="doLogout()" style="padding:5px 10px; font-size:11px;">退出</button>
+        <a href="index.html" class="badge-admin secondary" style="padding:5px 10px; font-size:11px;">前台</a>
+      </div>
+    </header>
+
+    <!-- Tab 切换 -->
+    <div style="padding:12px 14px 0;">
+      <div class="tabs" id="main-tabs" style="overflow-x:auto; display:flex; gap:0;">
+        <button class="tab" data-tab="today" onclick="switchTab('today')">📅 今日可开</button>
+        <button class="tab" data-tab="add" onclick="switchTab('add')">➕ 添加模组</button>
+        <button class="tab" data-tab="category" onclick="switchTab('category')">🏷️ 分类</button>
+        <button class="tab" data-tab="host" onclick="switchTab('host')">🎤 主持人</button>
+        <button class="tab" data-tab="admin" onclick="switchTab('admin')">🔑 管理员</button>
+        <button class="tab" data-tab="manage" onclick="switchTab('manage')">📋 模组列表</button>
+      </div>
+    </div>
+
+    <!-- ========== 今日可开 ========== -->
+    <div id="tab-today" class="tab-content active">
+      <div class="admin-section">
+        <div class="admin-section-title">选择今天可以开的模组</div>
+        <div style="font-size:12px; color:var(--text2); margin-bottom:12px;">点击切换 · 玩家端实时更新</div>
+        <div id="select-list"></div>
+        <div class="btn-group" style="margin-top:14px;">
+          <button class="btn btn-success" onclick="saveTodayAndNotify()">💾 保存设置</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 添加模组 ========== -->
+    <div id="tab-add" class="tab-content">
+      <div class="admin-section">
+        <div class="admin-section-title">添加新模组</div>
+
+        <div class="form-group">
+          <div class="form-label">封面图（4:3 比例最佳）</div>
+          <div id="cover-upload-area" class="cover-upload" onclick="document.getElementById('cover-input').click()">
+            <div class="upload-icon">🖼️</div>
+            <div class="upload-text">点击上传封面图</div>
+            <div class="upload-hint">JPG / PNG，将按 4:3 裁剪显示</div>
+          </div>
+          <input type="file" id="cover-input" accept="image/*" style="display:none" onchange="handleCoverUpload(this)">
+          <div id="cover-preview" class="cover-preview" style="display:none;">
+            <img id="preview-img" src="" alt="预览">
+            <button class="remove-cover" onclick="removeCover()">✕</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="form-label">模组名称 *</div>
+          <input type="text" id="input-name" class="form-input" placeholder="例如：迷雾中的低语" maxlength="50">
+        </div>
+
+        <div class="form-group">
+          <div class="form-label">分类</div>
+          <select id="input-category" class="form-select">
+            <option value="">未分类</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <div class="form-label">绑定主持人</div>
+          <select id="input-host" class="form-select">
+            <option value="">不绑定主持人</option>
+          </select>
+          <div style="font-size:11px; color:var(--text2); margin-top:4px;">绑定后主持人的档期将决定该模组是否可开</div>
+        </div>
+
+        <div class="form-group">
+          <div class="form-label">简介 *</div>
+          <textarea id="input-intro" class="form-textarea" placeholder="简单介绍一下这个模组的故事背景、玩法和难度…" maxlength="300"></textarea>
+          <div style="text-align:right; font-size:11px; color:var(--text2); margin-top:4px;">
+            <span id="intro-count">0</span> / 300
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="form-label">标签（用逗号分隔）</div>
+          <input type="text" id="input-tags" class="form-input" placeholder="例如：恐怖, 入门, 短篇">
+        </div>
+
+        <button class="btn btn-primary" onclick="submitAddModule()">✨ 添加模组</button>
+      </div>
+    </div>
+
+    <!-- ========== 分类管理 ========== -->
+    <div id="tab-category" class="tab-content">
+      <div class="admin-section">
+        <div class="admin-section-title">分类管理</div>
+        <div id="category-list" style="margin-bottom:14px;"></div>
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="new-cat-name" class="form-input" placeholder="新分类名称" style="flex:1;">
+          <button class="btn btn-success btn-sm" onclick="submitAddCategory()">添加</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 主持人管理 ========== -->
+    <div id="tab-host" class="tab-content">
+      <div class="admin-section">
+        <div class="admin-section-title">主持人管理</div>
+        <div id="host-list" style="margin-bottom:16px;"></div>
+        <div style="display:flex; gap:8px; margin-bottom:16px;">
+          <input type="text" id="new-host-name" class="form-input" placeholder="新主持人名称" style="flex:1;">
+          <button class="btn btn-success btn-sm" onclick="submitAddHost()">添加</button>
+        </div>
+        <!-- 主持人档期日历 -->
+        <div id="host-calendar-area" style="display:none;">
+          <div style="font-size:13px; font-weight:700; color:var(--text); margin-bottom:10px;">
+            编辑档期：<span id="calendar-host-name" style="color:var(--host-badge);"></span>
+          </div>
+          <div class="calendar">
+            <div class="calendar-header">
+              <button onclick="changeCalendarMonth(-1)">‹</button>
+              <span class="month-label" id="calendar-month-label"></span>
+              <button onclick="changeCalendarMonth(1)">›</button>
+            </div>
+            <div class="calendar-grid" id="calendar-grid"></div>
+            <div class="calendar-legend">
+              <span class="legend-today">今天</span>
+              <span class="legend-booked">已被订走</span>
+              <span class="legend-selected">今日点击选择</span>
+            </div>
+          </div>
+          <div style="font-size:11px; color:var(--text2); line-height:1.7; margin-top:8px;">
+            💡 点击日期标记/取消「已被订走」，被订走日期对应的模组将在玩家端显示不可开。<br>
+            只显示本月日期，切换月份可设置其他月份档期。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 管理员管理 ========== -->
+    <div id="tab-admin" class="tab-content">
+      <div class="admin-section">
+        <div class="admin-section-title">管理员账号</div>
+        <div id="admin-list" style="margin-bottom:14px;"></div>
+        <div style="background:var(--card); border-radius:14px; padding:14px; border:1px solid var(--border);">
+          <div style="font-size:13px; font-weight:700; margin-bottom:10px;">添加新管理员</div>
+          <div class="form-group">
+            <input type="text" id="new-admin-user" class="form-input" placeholder="用户名">
+          </div>
+          <div class="form-group">
+            <input type="password" id="new-admin-pass" class="form-input" placeholder="密码">
+          </div>
+          <div class="form-group">
+            <select id="new-admin-role" class="form-select">
+              <option value="normal">普通管理员</option>
+              <option value="super">超级管理员</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="submitAddAdmin()">添加管理员</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 模组列表 ========== -->
+    <div id="tab-manage" class="tab-content">
+      <div class="admin-section">
+        <div class="admin-section-title">所有模组（共 <span id="total-count">0</span> 个）</div>
+        <div id="module-list"></div>
+      </div>
+    </div>
+
+    <div class="safe-bottom"></div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <!-- 确认弹窗 -->
+  <div class="confirm-overlay" id="confirm-overlay">
+    <div class="confirm-box">
+      <h3 id="confirm-title">确认删除</h3>
+      <p id="confirm-msg">此操作不可恢复，确定继续吗？</p>
+      <div class="confirm-actions">
+        <button class="btn btn-secondary" onclick="closeConfirm()">取消</button>
+        <button class="btn btn-danger" id="confirm-ok">确定删除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 编辑模组弹窗 -->
+  <div id="edit-modal" style="display:none; position:fixed; inset:0; z-index:200; background:rgba(0,0,0,0.7); backdrop-filter:blur(4px); align-items:flex-end; justify-content:center;">
+    <div style="width:100%; max-width:600px; background:var(--card); border-radius:20px 20px 0 0; padding:20px; max-height:90vh; overflow-y:auto;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h2 style="font-size:17px; font-weight:700;">编辑模组</h2>
+        <button onclick="closeEditModal()" style="background:none; border:none; color:var(--text2); font-size:22px; cursor:pointer;">✕</button>
+      </div>
+      <div class="form-group">
+        <div class="form-label">封面图</div>
+        <div id="edit-cover-upload-area" class="cover-upload" onclick="document.getElementById('edit-cover-input').click()">
+          <div class="upload-icon">🖼️</div>
+          <div class="upload-text">点击更换封面图</div>
+        </div>
+        <input type="file" id="edit-cover-input" accept="image/*" style="display:none" onchange="handleEditCoverUpload(this)">
+        <div id="edit-cover-preview" class="cover-preview" style="display:none; margin-top:10px;">
+          <img id="edit-preview-img" src="" alt="预览">
+          <button class="remove-cover" onclick="removeEditCover()">✕</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="form-label">模组名称 *</div>
+        <input type="text" id="edit-name" class="form-input" maxlength="50">
+      </div>
+      <div class="form-group">
+        <div class="form-label">分类</div>
+        <select id="edit-category" class="form-select">
+          <option value="">未分类</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <div class="form-label">绑定主持人</div>
+        <select id="edit-host" class="form-select">
+          <option value="">不绑定主持人</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <div class="form-label">简介 *</div>
+        <textarea id="edit-intro" class="form-textarea" maxlength="300"></textarea>
+      </div>
+      <div class="form-group">
+        <div class="form-label">标签（用逗号分隔）</div>
+        <input type="text" id="edit-tags" class="form-input" placeholder="例如：恐怖, 入门">
+      </div>
+      <button class="btn btn-primary" onclick="submitEditModule()">💾 保存修改</button>
+    </div>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="admin.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+  </script>
+</body>
+</html>
