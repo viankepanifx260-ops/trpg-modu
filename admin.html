@@ -49,7 +49,9 @@
         <button class="tab" data-tab="today" onclick="switchTab('today')">📅 今日可开</button>
         <button class="tab" data-tab="add" onclick="switchTab('add')">➕ 添加模组</button>
         <button class="tab" data-tab="category" onclick="switchTab('category')">🏷️ 分类</button>
+        <button class="tab" data-tab="subcat" onclick="switchTab('subcat')">🏷️ 小分类</button>
         <button class="tab" data-tab="host" onclick="switchTab('host')">🎤 主持人</button>
+        <button class="tab" data-tab="ann" onclick="switchTab('ann')">📢 公告</button>
         <button class="tab" data-tab="admin" onclick="switchTab('admin')">🔑 管理员</button>
         <button class="tab" data-tab="manage" onclick="switchTab('manage')">📋 模组列表</button>
       </div>
@@ -93,17 +95,22 @@
 
         <div class="form-group">
           <div class="form-label">分类</div>
-          <select id="input-category" class="form-select">
+          <select id="input-category" class="form-select" onchange="onCategoryChange('input')">
             <option value="">未分类</option>
           </select>
         </div>
 
-        <div class="form-group">
-          <div class="form-label">绑定主持人</div>
-          <select id="input-host" class="form-select">
-            <option value="">不绑定主持人</option>
+        <div class="form-group" id="input-subcat-group" style="display:none;">
+          <div class="form-label">小分类</div>
+          <select id="input-subcategory" class="form-select">
+            <option value="">全部</option>
           </select>
-          <div style="font-size:11px; color:var(--text2); margin-top:4px;">绑定后主持人的档期将决定该模组是否可开</div>
+        </div>
+
+        <div class="form-group">
+          <div class="form-label">相关主持人</div>
+          <div id="input-host-list" class="host-check-list"></div>
+          <div style="font-size:11px; color:var(--text2); margin-top:4px;">勾选相关主持人，全部被订走时模组才显示不可开</div>
         </div>
 
         <div class="form-group">
@@ -131,6 +138,34 @@
         <div style="display:flex; gap:8px;">
           <input type="text" id="new-cat-name" class="form-input" placeholder="新分类名称" style="flex:1;">
           <button class="btn btn-success btn-sm" onclick="submitAddCategory()">添加</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 小分类管理 ========== -->
+    <div id="tab-subcat" class="tab-content">
+      <div class="admin-section">
+        <div class="admin-section-title">小分类管理</div>
+        <div style="font-size:12px; color:var(--text2); margin-bottom:14px;">点击某个分类展开后可增删其小分类。小分类会在玩家端作为二级筛选显示。</div>
+        <div id="subcat-list"></div>
+      </div>
+    </div>
+
+    <!-- ========== 公告管理 ========== -->
+    <div id="tab-ann" class="tab-content">
+      <div class="admin-section">
+        <div class="admin-section-title">公告管理</div>
+        <div style="font-size:12px; color:var(--text2); margin-bottom:14px;">开启的公告会在玩家进入网站时自动弹出。</div>
+        <div id="ann-list" style="margin-bottom:14px;"></div>
+        <div style="background:var(--card); border-radius:14px; padding:14px; border:1px solid var(--border);">
+          <div style="font-size:13px; font-weight:700; margin-bottom:10px;">📢 发布新公告</div>
+          <div class="form-group">
+            <textarea id="new-ann-text" class="form-textarea" placeholder="输入公告内容…" rows="3" maxlength="500"></textarea>
+            <div style="text-align:right; font-size:11px; color:var(--text2); margin-top:4px;">
+              <span id="ann-count">0</span> / 500
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="submitAddAnnouncement()">📢 发布公告</button>
         </div>
       </div>
     </div>
@@ -245,15 +280,20 @@
       </div>
       <div class="form-group">
         <div class="form-label">分类</div>
-        <select id="edit-category" class="form-select">
+        <select id="edit-category" class="form-select" onchange="onCategoryChange('edit')">
           <option value="">未分类</option>
         </select>
       </div>
-      <div class="form-group">
-        <div class="form-label">绑定主持人</div>
-        <select id="edit-host" class="form-select">
-          <option value="">不绑定主持人</option>
+      <div class="form-group" id="edit-subcat-group" style="display:none;">
+        <div class="form-label">小分类</div>
+        <select id="edit-subcategory" class="form-select">
+          <option value="">全部</option>
         </select>
+      </div>
+      <div class="form-group">
+        <div class="form-label">相关主持人</div>
+        <div id="edit-host-list" class="host-check-list"></div>
+        <div style="font-size:11px; color:var(--text2); margin-top:4px;">全部被订走时模组才显示不可开</div>
       </div>
       <div class="form-group">
         <div class="form-label">简介 *</div>
