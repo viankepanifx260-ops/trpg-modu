@@ -1,4 +1,5 @@
-// ==================== 管理后台逻辑 V2 ====================
+// ==================== 管理后台逻辑 V3 ====================
+// 支持：小分类 / 多主持人 / 公告
 
 let pendingCover = '';
 let editingId = null;
@@ -54,10 +55,15 @@ function switchTab(name) {
 
   if (name === 'today')    renderSelectList();
   if (name === 'category') renderCategoryManage();
+  if (name === 'subcat')   renderSubCatManage();
   if (name === 'host')     renderHostManage();
+  if (name === 'ann')      renderAnnManage();
   if (name === 'admin')    renderAdminManage();
   if (name === 'manage')   renderModuleList();
-  if (name === 'add')      refreshAddFormSelects();
+  if (name === 'add') {
+    refreshAddFormSelects();
+    renderHostCheckList('input');
+  }
 }
 
 function renderAllTabs() {
@@ -75,12 +81,12 @@ function renderSelectList() {
   }
   list.innerHTML = modules.map(m => {
     const coverHtml = m.cover ? '<img src="' + m.cover + '" alt="">' : '🎲';
-    const hostName = m.hostId ? getHostName(m.hostId) : '无主持人';
+    const hostNames = getHostNames(m.hostIds || []);
     return '<div class="module-select-item ' + (m.todayAvailable ? 'selected' : '') + '" onclick="toggleSelect(\'' + m.id + '\')">' +
       '<div class="select-thumb">' + coverHtml + '</div>' +
       '<div class="select-info">' +
         '<div class="select-name">' + escH(m.name) + '</div>' +
-        '<div class="select-host">🎤 ' + escH(hostName) + '</div>' +
+        '<div class="select-host">🎤 ' + escH(hostNames) + '</div>' +
       '</div>' +
       '<div class="check-circle">✓</div>' +
       '</div>';
@@ -110,14 +116,68 @@ function refreshAddFormSelects() {
     const cats = getCategories();
     catSelect.innerHTML = '<option value="">未分类</option>' +
       cats.map(c => '<option value="' + c.id + '">' + escH(c.name) + '</option>').join('');
+    onCategoryChange('input');
   }
-  // 主持人下拉
-  const hostSelect = document.getElementById('input-host');
-  if (hostSelect) {
-    const hosts = getHosts();
-    hostSelect.innerHTML = '<option value="">不绑定主持人</option>' +
-      hosts.map(h => '<option value="' + h.id + '">' + escH(h.name) + '</option>').join('');
+  // 主持人多选
+  renderHostCheckList('input');
+}
+
+// 分类变更 → 更新小分类下拉
+function onCategoryChange(prefix) {
+  const catId = document.getElementById(prefix + '-category').value;
+  const subGroup = document.getElementById(prefix + '-subcat-group');
+  const subSelect = document.getElementById(prefix + '-subcategory');
+  if (!subGroup || !subSelect) return;
+  if (catId) {
+    subGroup.style.display = 'block';
+    const subs = getSubCategories(catId);
+    subSelect.innerHTML = '<option value="">全部</option>' +
+      subs.map(s => '<option value="' + s.id + '">' + escH(s.name) + '</option>').join('');
+  } else {
+    subGroup.style.display = 'none';
+    subSelect.innerHTML = '<option value="">全部</option>';
   }
+}
+
+// 渲染主持人多选列表
+function renderHostCheckList(prefix) {
+  const container = document.getElementById(prefix + '-host-list');
+  if (!container) return;
+  const hosts = getHosts();
+  container.innerHTML = hosts.map(h =>
+    '<div class="host-check-item" id="' + prefix + '-host-' + h.id + '" onclick="toggleHostCheck(\'' + prefix + '\',\'' + h.id + '\')">' +
+      '<input type="checkbox" id="' + prefix + '-host-cb-' + h.id + '" style="pointer-events:none;">' +
+      '<span class="host-check-label">' + escH(h.name) + '</span>' +
+    '</div>'
+  ).join('');
+}
+
+function toggleHostCheck(prefix, hostId) {
+  const cb = document.getElementById(prefix + '-host-cb-' + hostId);
+  const item = document.getElementById(prefix + '-host-' + hostId);
+  if (!cb || !item) return;
+  cb.checked = !cb.checked;
+  item.classList.toggle('selected', cb.checked);
+}
+
+function getSelectedHostIds(prefix) {
+  const hosts = getHosts();
+  return hosts.filter(h => {
+    const cb = document.getElementById(prefix + '-host-cb-' + h.id);
+    return cb && cb.checked;
+  }).map(h => h.id);
+}
+
+function setHostCheckList(prefix, hostIds) {
+  const hosts = getHosts();
+  hosts.forEach(h => {
+    const cb = document.getElementById(prefix + '-host-cb-' + h.id);
+    const item = document.getElementById(prefix + '-host-' + h.id);
+    if (!cb || !item) return;
+    const checked = hostIds && hostIds.includes(h.id);
+    cb.checked = checked;
+    item.classList.toggle('selected', checked);
+  });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -159,13 +219,15 @@ function submitAddModule() {
   const intro = document.getElementById('input-intro').value.trim();
   const tagsRaw = document.getElementById('input-tags').value.trim();
   const catId = document.getElementById('input-category').value;
-  const hostId = document.getElementById('input-host').value;
+  const subCatId = document.getElementById('input-subcategory') ? document.getElementById('input-subcategory').value : '';
+  const hostIds = getSelectedHostIds('input');
   if (!name) { showToast('请输入模组名称'); return; }
   if (!intro) { showToast('请输入模组简介'); return; }
   const tags = tagsRaw ? tagsRaw.split(/[,，]/).map(t => t.trim()).filter(Boolean) : [];
   addModule({
     name, intro, cover: pendingCover,
-    categoryId: catId, hostId: hostId || '',
+    categoryId: catId, subCategoryId: subCatId,
+    hostIds: hostIds,
     todayAvailable: true
   });
   // 重置
@@ -173,7 +235,7 @@ function submitAddModule() {
   document.getElementById('input-intro').value = '';
   document.getElementById('input-tags').value = '';
   document.getElementById('input-category').value = '';
-  document.getElementById('input-host').value = '';
+  if (document.getElementById('input-subcategory')) document.getElementById('input-subcategory').value = '';
   const ic = document.getElementById('intro-count');
   if (ic) ic.textContent = '0';
   removeCover();
@@ -374,7 +436,8 @@ function renderModuleList() {
   list.innerHTML = modules.map(m => {
     const coverHtml = m.cover ? '<img src="' + m.cover + '" alt="">' : '🎲';
     const catName = getCategoryName(m.categoryId);
-    const hostName = m.hostId ? getHostName(m.hostId) : '未绑定';
+    const subCatName = getSubCategoryName(m.subCategoryId);
+    const hostNames = getHostNames(m.hostIds || []);
     const avail = m.todayAvailable ? '✅ 今日可开' : '❌ 今日不可开';
     const availColor = m.todayAvailable ? 'var(--green)' : 'var(--text2)';
     return '<div class="module-list-item">' +
@@ -383,8 +446,8 @@ function renderModuleList() {
         '<div class="module-list-name">' + escH(m.name) + '</div>' +
         '<div class="module-list-meta">' +
           '<span style="color:' + availColor + '; font-size:11px;">' + avail + '</span>' +
-          '<span style="margin-left:6px; color:var(--text2);">· ' + escH(catName) + '</span>' +
-          '<span class="list-item-host">🎤 ' + escH(hostName) + '</span>' +
+          '<span style="margin-left:6px; color:var(--text2);">· ' + escH(catName) + (subCatName ? ' / ' + escH(subCatName) : '') + '</span>' +
+          (hostNames !== '未绑定' ? '<span class="list-item-host">🎤 ' + escH(hostNames) + '</span>' : '') +
         '</div>' +
       '</div>' +
       '<div class="list-item-actions">' +
@@ -406,11 +469,12 @@ function openEditModal(id) {
   const cats = getCategories();
   catSelect.innerHTML = '<option value="">未分类</option>' +
     cats.map(c => '<option value="' + c.id + '"' + (m.categoryId === c.id ? ' selected' : '') + '>' + escH(c.name) + '</option>').join('');
-
-  const hostSelect = document.getElementById('edit-host');
-  const hosts = getHosts();
-  hostSelect.innerHTML = '<option value="">不绑定主持人</option>' +
-    hosts.map(h => '<option value="' + h.id + '"' + (m.hostId === h.id ? ' selected' : '') + '>' + escH(h.name) + '</option>').join('');
+  onCategoryChange('edit');
+  // 设置小分类
+  setTimeout(() => {
+    const subSelect = document.getElementById('edit-subcategory');
+    if (subSelect) subSelect.value = m.subCategoryId || '';
+  }, 0);
 
   document.getElementById('edit-name').value = m.name;
   document.getElementById('edit-intro').value = m.intro;
@@ -425,6 +489,10 @@ function openEditModal(id) {
     document.getElementById('edit-cover-upload-area').style.display = 'flex';
     document.getElementById('edit-cover-preview').style.display = 'none';
   }
+
+  // 主持人多选
+  renderHostCheckList('edit');
+  setHostCheckList('edit', m.hostIds || []);
 
   document.getElementById('edit-modal').style.display = 'flex';
   document.body.style.overflow = 'hidden';
@@ -463,7 +531,8 @@ function submitEditModule() {
   const intro = document.getElementById('edit-intro').value.trim();
   const tagsRaw = document.getElementById('edit-tags').value.trim();
   const catId = document.getElementById('edit-category').value;
-  const hostId = document.getElementById('edit-host').value;
+  const subCatId = document.getElementById('edit-subcategory') ? document.getElementById('edit-subcategory').value : '';
+  const hostIds = getSelectedHostIds('edit');
   if (!name) { showToast('请输入模组名称'); return; }
   if (!intro) { showToast('请输入模组简介'); return; }
   const tags = tagsRaw ? tagsRaw.split(/[,，]/).map(t => t.trim()).filter(Boolean) : [];
@@ -471,7 +540,8 @@ function submitEditModule() {
     name, intro, tags,
     cover: editPendingCover,
     categoryId: catId,
-    hostId: hostId || ''
+    subCategoryId: subCatId,
+    hostIds: hostIds
   });
   closeEditModal();
   renderModuleList();
@@ -484,6 +554,154 @@ function confirmDeleteModule(id, name) {
     renderModuleList();
     showToast('🗑️ 已删除');
   });
+}
+
+// ========== 小分类管理 ==========
+let openSubCatCatId = null;
+
+function renderSubCatManage() {
+  const cats = getCategories();
+  const list = document.getElementById('subcat-list');
+  list.innerHTML = cats.map(c => {
+    const subs = c.subCategories || [];
+    const isOpen = openSubCatCatId === c.id;
+    return '<div class="cat-with-sub">' +
+      '<div class="cat-with-sub-header" onclick="toggleSubCatPanel(\'' + c.id + '\')">' +
+        '<div class="cat-with-sub-header-left">' +
+          '<span class="cat-with-sub-name">' + escH(c.name) + '</span>' +
+          '<span class="cat-with-sub-count">' + subs.length + ' 个小分类</span>' +
+        '</div>' +
+        '<span style="color:var(--text2); font-size:18px; transition:transform 0.2s; display:inline-block;' +
+          (isOpen ? 'transform:rotate(180deg);' : '') + '" id="subcat-arrow-' + c.id + '">▾</span>' +
+      '</div>' +
+      '<div class="cat-with-sub-body' + (isOpen ? ' open' : '') + '" id="subcat-body-' + c.id + '">' +
+        subs.map(s =>
+          '<div class="subcat-item">' +
+            '<span class="subcat-item-name">' + escH(s.name) + '</span>' +
+            '<button class="icon-btn danger" onclick="event.stopPropagation(); confirmDeleteSubCat(\'' + c.id + '\',\'' + s.id + '\',\'' + escH(s.name) + '\')">🗑️</button>' +
+          '</div>'
+        ).join('') +
+        (subs.length === 0 ? '<div style="font-size:12px; color:var(--text2); padding:4px 0;">暂无小分类</div>' : '') +
+        '<div class="subcat-add-row">' +
+          '<input type="text" id="new-subcat-' + c.id + '" class="form-input" placeholder="新小分类名称" style="flex:1; font-size:13px; padding:8px 12px;">' +
+          '<button class="btn btn-success btn-sm" onclick="event.stopPropagation(); submitAddSubCat(\'' + c.id + '\')">添加</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function toggleSubCatPanel(catId) {
+  openSubCatCatId = openSubCatCatId === catId ? null : catId;
+  // 关闭其他展开项
+  document.querySelectorAll('.cat-with-sub-body').forEach(el => {
+    const id = el.id.replace('subcat-body-', '');
+    if (id !== openSubCatCatId) el.classList.remove('open');
+  });
+  document.querySelectorAll('.cat-with-sub-body').forEach(el => el.classList.remove('open'));
+  if (openSubCatCatId) {
+    const body = document.getElementById('subcat-body-' + openSubCatCatId);
+    if (body) body.classList.add('open');
+  }
+  // 更新箭头
+  document.querySelectorAll('.cat-with-sub-header span:last-child').forEach(el => {
+    el.style.transform = '';
+  });
+  const arrow = document.getElementById('subcat-arrow-' + catId);
+  if (arrow) arrow.style.transform = openSubCatCatId === catId ? 'rotate(180deg)' : '';
+  // 如果是新展开，重新渲染确保箭头状态正确
+  if (openSubCatCatId === catId) renderSubCatManage_openOnly(catId);
+}
+
+function renderSubCatManage_openOnly(catId) {
+  // 只更新展开状态，不重绘整个列表
+  const cats = getCategories();
+  const cat = cats.find(c => c.id === catId);
+  if (!cat) return;
+  const subs = cat.subCategories || [];
+  const body = document.getElementById('subcat-body-' + catId);
+  if (!body) return;
+  body.classList.add('open');
+  const arrow = document.getElementById('subcat-arrow-' + catId);
+  if (arrow) arrow.style.transform = 'rotate(180deg)';
+  body.innerHTML =
+    subs.map(s =>
+      '<div class="subcat-item">' +
+        '<span class="subcat-item-name">' + escH(s.name) + '</span>' +
+        '<button class="icon-btn danger" onclick="event.stopPropagation(); confirmDeleteSubCat(\'' + catId + '\',\'' + s.id + '\',\'' + escH(s.name) + '\')">🗑️</button>' +
+      '</div>'
+    ).join('') +
+    (subs.length === 0 ? '<div style="font-size:12px; color:var(--text2); padding:4px 0;">暂无小分类</div>' : '') +
+    '<div class="subcat-add-row">' +
+      '<input type="text" id="new-subcat-' + catId + '" class="form-input" placeholder="新小分类名称" style="flex:1; font-size:13px; padding:8px 12px;">' +
+      '<button class="btn btn-success btn-sm" onclick="event.stopPropagation(); submitAddSubCat(\'' + catId + '\')">添加</button>' +
+    '</div>';
+}
+
+function submitAddSubCat(catId) {
+  const input = document.getElementById('new-subcat-' + catId);
+  if (!input) return;
+  const name = input.value.trim();
+  if (!name) { showToast('请输入小分类名称'); return; }
+  addSubCategory(catId, name);
+  renderSubCatManage_openOnly(catId);
+  showToast('✅ 小分类已添加');
+}
+
+function confirmDeleteSubCat(catId, subCatId, name) {
+  showConfirm('删除小分类', '确定删除小分类「' + name + '」？\n相关模组将解除该小分类绑定。', () => {
+    deleteSubCategory(catId, subCatId);
+    renderSubCatManage_openOnly(catId);
+    showToast('🗑️ 已删除');
+  });
+}
+
+// ========== 公告管理 ==========
+function renderAnnManage() {
+  const anns = getAnnouncements();
+  const list = document.getElementById('ann-list');
+  if (!anns.length) {
+    list.innerHTML = '<div style="text-align:center; color:var(--text2); padding:20px; font-size:13px;">暂无公告</div>';
+    return;
+  }
+  list.innerHTML = anns.map(a =>
+    '<div class="ann-item">' +
+      '<div class="ann-item-header">' +
+        '<div style="display:flex; align-items:center; gap:10px;">' +
+          '<div class="ann-toggle ' + (a.enabled ? 'on' : '') + '" id="ann-toggle-' + a.id + '" onclick="toggleAnn(\'' + a.id + '\')"></div>' +
+          '<span style="font-size:12px; color:' + (a.enabled ? 'var(--green)' : 'var(--text2)') + '; font-weight:600;">' + (a.enabled ? '已启用' : '已禁用') + '</span>' +
+        '</div>' +
+        '<button class="icon-btn danger" onclick="confirmDeleteAnn(\'' + a.id + '\',\'' + escH(a.text.substring(0, 20)) + '\')">🗑️</button>' +
+      '</div>' +
+      '<div class="ann-item-text">' + escH(a.text) + '</div>' +
+    '</div>'
+  ).join('');
+}
+
+function toggleAnn(id) {
+  const anns = getAnnouncements();
+  const ann = anns.find(a => a.id === id);
+  if (!ann) return;
+  updateAnnouncement(id, ann.text, !ann.enabled);
+  renderAnnManage();
+}
+
+function confirmDeleteAnn(id, preview) {
+  showConfirm('删除公告', '确定删除该公告？', () => {
+    deleteAnnouncement(id);
+    renderAnnManage();
+    showToast('🗑️ 已删除');
+  });
+}
+
+function submitAddAnnouncement() {
+  const text = document.getElementById('new-ann-text').value.trim();
+  if (!text) { showToast('请输入公告内容'); return; }
+  addAnnouncement(text);
+  document.getElementById('new-ann-text').value = '';
+  document.getElementById('ann-count').textContent = '0';
+  renderAnnManage();
+  showToast('✅ 公告已发布');
 }
 
 // ========== 确认弹窗 ==========
@@ -514,6 +732,22 @@ document.addEventListener('DOMContentLoaded', () => {
   if (userInput) userInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') document.getElementById('login-pass').focus();
   });
+  // 简介字数统计
+  const introEl = document.getElementById('input-intro');
+  if (introEl) {
+    introEl.addEventListener('input', () => {
+      const c = document.getElementById('intro-count');
+      if (c) c.textContent = introEl.value.length;
+    });
+  }
+  // 公告字数统计
+  const annEl = document.getElementById('new-ann-text');
+  if (annEl) {
+    annEl.addEventListener('input', () => {
+      const c = document.getElementById('ann-count');
+      if (c) c.textContent = annEl.value.length;
+    });
+  }
 });
 
 // ========== 工具 ==========
