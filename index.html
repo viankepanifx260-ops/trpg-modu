@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1.0">
+  <meta name="theme-color" content="#0f0f1a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>今日模组 - 跑团店</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎲</text></svg>">
+</head>
+<body>
+
+  <!-- 顶部栏 -->
+  <header class="top-bar">
+    <h1>🎲 模组列表</h1>
+    <a href="admin.html" class="badge-admin secondary">管理</a>
+  </header>
+
+  <!-- 分类筛选 -->
+  <div class="category-bar" id="category-bar"></div>
+
+  <!-- 日期选择 -->
+  <div class="date-picker-bar" id="date-picker-bar">
+    <span class="date-label">📅 查看日期：</span>
+  </div>
+
+  <!-- 统计摘要 -->
+  <div style="padding:0 16px 8px; display:flex; align-items:center; gap:8px;">
+    <div id="stat-today" style="font-size:12px; color:var(--text2); display:flex; align-items:center; gap:5px;">
+      <span id="stat-dot" style="display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--green);"></span>
+      加载中…
+    </div>
+    <div style="flex:1; height:1px; background:var(--border);"></div>
+  </div>
+
+  <!-- 模组网格 -->
+  <div id="module-grid" class="module-grid"></div>
+
+  <div class="safe-bottom"></div>
+
+  <!-- 模组详情弹窗 -->
+  <div class="detail-modal" id="detail-modal">
+    <div class="detail-card">
+      <div class="detail-cover" id="detail-cover">
+        <span class="cover-placeholder" id="detail-cover-placeholder">🎲</span>
+      </div>
+      <div class="detail-body">
+        <div class="detail-name" id="detail-name"></div>
+        <div class="detail-meta" id="detail-meta"></div>
+        <div class="detail-intro" id="detail-intro"></div>
+        <div class="detail-unavailable" id="detail-unavailable" style="display:none;"></div>
+        <button class="detail-close" onclick="closeDetail()">关 闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script src="data.js"></script>
+  <script src="player.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+  </script>
+</body>
+</html>
