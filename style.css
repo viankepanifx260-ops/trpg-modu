@@ -173,10 +173,10 @@ body {
   opacity: 0.5;
 }
 
-/* 封面 4:3 */
+/* 封面 3:4 */
 .card-cover {
   width: 100%;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 3 / 4;
   background: linear-gradient(135deg, #2a2a4a 0%, #1a1a2e 100%);
   display: flex;
   align-items: center;
@@ -338,7 +338,7 @@ body {
 
 .detail-cover {
   width: 100%;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 3 / 4;
   background: var(--card2);
   display: flex;
   align-items: center;
@@ -549,7 +549,7 @@ body {
   padding-right: 36px;
 }
 
-/* 图片上传 4:3 预览 */
+/* 图片上传 3:4 预览 */
 .cover-upload {
   display: flex;
   flex-direction: column;
@@ -562,8 +562,8 @@ body {
   cursor: pointer;
   transition: all 0.2s;
   text-align: center;
-  aspect-ratio: 4 / 3;
-  max-height: 200px;
+  aspect-ratio: 3 / 4;
+  max-height: 220px;
 }
 
 .cover-upload:active,
@@ -593,8 +593,8 @@ body {
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--border);
-  aspect-ratio: 4 / 3;
-  max-height: 200px;
+  aspect-ratio: 3 / 4;
+  max-height: 220px;
 }
 
 .cover-preview img {
