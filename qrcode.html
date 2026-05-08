@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>模组站 - 二维码</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0f0f1a;
+    color: #e8e8f0;
+    font-family: -apple-system, 'PingFang SC', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 20px;
+    gap: 32px;
+  }
+  h1 { font-size: 22px; font-weight: 800; text-align: center; }
+  h2 { font-size: 14px; color: #8888aa; font-weight: 400; text-align: center; margin-top: -20px; }
+  .qr-wrap {
+    background: #fff;
+    border-radius: 20px;
+    padding: 20px;
+  }
+  .url-box {
+    background: #1a1a2e;
+    border: 1px solid #2a2a4a;
+    border-radius: 14px;
+    padding: 16px 20px;
+    text-align: center;
+    width: 100%;
+    max-width: 360px;
+  }
+  .url-box .label { font-size: 11px; color: #8888aa; margin-bottom: 6px; }
+  .url-box .url { font-size: 13px; color: #4ecdc4; word-break: break-all; font-weight: 600; }
+  .admin-link {
+    display: inline-block;
+    margin-top: 10px;
+    font-size: 12px;
+    color: #e94560;
+    text-decoration: none;
+    padding: 6px 16px;
+    border: 1px solid #e94560;
+    border-radius: 20px;
+  }
+  .note {
+    font-size: 12px;
+    color: #8888aa;
+    text-align: center;
+    max-width: 320px;
+    line-height: 1.7;
+  }
+</style>
+</head>
+<body>
+
+  <div>
+    <h1>🎲 跑团店模组站</h1>
+    <h2>扫码查看今日可开模组</h2>
+  </div>
+
+  <div class="qr-wrap">
+    <img id="qrcode" width="220" height="220" alt="二维码">
+  </div>
+
+  <div class="url-box">
+    <div class="label">或直接访问网址</div>
+    <div class="url">viankepanifx260-ops.github.io/trpg-modu</div>
+    <a href="https://viankepanifx260-ops.github.io/trpg-modu/admin.html" class="admin-link">🔒 管理后台入口</a>
+  </div>
+
+  <div class="note">
+    ⚠️ 首次部署需要等待 1~5 分钟<br>
+    若二维码无法扫描，请稍后再试
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script>
+    QRCode.toCanvas(document.createElement('canvas'),
+      'https://viankepanifx260-ops.github.io/trpg-modu',
+      { width: 220, margin: 2 },
+      function(err, canvas) {
+        if (!err) {
+          document.getElementById('qrcode').src = canvas.toDataURL('image/png');
+        }
+      }
+    );
+  </script>
+</body>
+</html>
